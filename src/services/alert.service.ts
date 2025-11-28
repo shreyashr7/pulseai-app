@@ -1,7 +1,7 @@
 import api from './api';
 import { Alert } from '../types';
 import { API_CONFIG } from '../config/api.config';
-import { generateAlertsFromAnomalies } from '../utils/backendTransformers';
+import { transformBackendAlerts } from '../utils/backendTransformers';
 import { mockAlerts } from '../mocks/healthData';
 
 // Set to false to use real backend
@@ -9,10 +9,10 @@ const USE_MOCK = false;
 
 export const alertService = {
     // Get all alerts
-    getAlerts: async (): Promise<Alert[]> => {
+    getAlerts: async (unreadOnly: boolean = false): Promise<Alert[]> => {
         try {
-            const response = await api.get(API_CONFIG.ENDPOINTS.HEALTH_SUMMARY);
-            return generateAlertsFromAnomalies(response.data);
+            const response = await api.get(`${API_CONFIG.ENDPOINTS.ALERTS}?limit=50&unread_only=${unreadOnly}`);
+            return transformBackendAlerts(response.data);
         } catch (error) {
             console.warn('Backend unavailable, using mock alerts:', error);
             if (USE_MOCK) {
@@ -25,7 +25,6 @@ export const alertService = {
 
     // Get alert details
     getAlertDetails: async (alertId: string): Promise<Alert> => {
-        // For backend, get all alerts and find the specific one
         try {
             const alerts = await alertService.getAlerts();
             const alert = alerts.find(a => a.id === alertId);
@@ -43,19 +42,33 @@ export const alertService = {
         }
     },
 
-    // Acknowledge alert
+    // Acknowledge alert (mark as read)
     acknowledgeAlert: async (alertId: string): Promise<void> => {
-        // Backend doesn't have alert acknowledgement yet
-        // For now, just simulate success
-        await new Promise(resolve => setTimeout(resolve, 200));
-        console.log('Alert acknowledged (local only):', alertId);
+        try {
+            await api.patch(API_CONFIG.ENDPOINTS.ALERT_READ.replace(':id', alertId));
+        } catch (error) {
+            console.warn('Failed to acknowledge alert:', error);
+            if (!USE_MOCK) throw error;
+        }
     },
 
     // Mark alert as read
     markAsRead: async (alertId: string): Promise<void> => {
-        // Backend doesn't have mark as read yet
-        // For now, just simulate success
-        await new Promise(resolve => setTimeout(resolve, 100));
-        console.log('Alert marked as read (local only):', alertId);
+        try {
+            await api.patch(API_CONFIG.ENDPOINTS.ALERT_READ.replace(':id', alertId));
+        } catch (error) {
+            console.warn('Failed to mark alert as read:', error);
+            if (!USE_MOCK) throw error;
+        }
+    },
+
+    // Mark all alerts as read
+    markAllAsRead: async (): Promise<void> => {
+        try {
+            await api.patch(API_CONFIG.ENDPOINTS.ALERTS_READ_ALL);
+        } catch (error) {
+            console.warn('Failed to mark all alerts as read:', error);
+            if (!USE_MOCK) throw error;
+        }
     },
 };

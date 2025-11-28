@@ -1,13 +1,9 @@
 export const API_CONFIG = {
-    // Base URL - Point to data processor backend
-    BASE_URL: __DEV__
-        ? 'http://localhost:8000'  // Data processor API
-        : 'https://api.pulsai.health',
-
-    // ML API URL
-    ML_API_URL: __DEV__
-        ? 'http://localhost:8001'  // ML API
-        : 'https://ml.pulsai.health',
+    // Base URL - Cloud server
+    BASE_URL: 'http://34.197.138.31:8000',
+    
+    // WebSocket URL
+    WS_URL: 'ws://34.197.138.31:8000/ws',
 
     // Timeout settings
     TIMEOUT: 15000, // 15 seconds
@@ -18,45 +14,31 @@ export const API_CONFIG = {
 
     // Endpoints
     ENDPOINTS: {
-        // Backend endpoints
-        INGEST_DATA: '/ingest',
-        HEALTH_SUMMARY: '/summary',
-        HEALTH_TRENDS: '/summary/trends',
+        // Auth endpoints
+        REGISTER: '/api/v1/auth/register',
+        LOGIN: '/api/v1/auth/login',
+        ME: '/api/v1/auth/me',
 
-        // Auth endpoints (for future implementation)
-        LOGIN: '/auth/login',
-        REGISTER: '/auth/register',
-        LOGOUT: '/auth/logout',
-        REFRESH_TOKEN: '/auth/refresh',
-
-        // User endpoints
-        USER_PROFILE: '/user/profile',
-        UPDATE_PROFILE: '/user/profile',
+        // Device endpoints
+        REGISTER_DEVICE: '/api/v1/devices/register',
+        DEVICES: '/api/v1/devices',
 
         // Health data endpoints
-        CURRENT_HEALTH: '/health/current',
-        HISTORICAL_DATA: '/health/historical',
-        HEALTH_SCORE_TRENDS: '/health/score-trends',
-        BEHAVIORAL_PATTERNS: '/health/behavioral-patterns',
+        INGEST: '/api/v1/ingest',
+        LATEST: '/api/v1/health/latest',
+        HISTORY: '/api/v1/health/history',
+        SUMMARY: '/api/v1/health/summary',
 
         // Alert endpoints
-        ALERTS: '/alerts',
-        ALERT_DETAIL: '/alerts/:id',
-        ACKNOWLEDGE_ALERT: '/alerts/:id/acknowledge',
+        ALERTS: '/api/v1/alerts',
+        ALERT_READ: '/api/v1/alerts/:id/read',
+        ALERTS_READ_ALL: '/api/v1/alerts/read-all',
 
         // Emergency endpoints
-        EMERGENCY_CONTACTS: '/emergency/contacts',
-        TRIGGER_SOS: '/emergency/sos',
-        CONFIRM_EMERGENCY: '/emergency/:id/confirm',
-        CANCEL_EMERGENCY: '/emergency/:id/cancel',
-
-        // Notification endpoints
-        REGISTER_DEVICE: '/notifications/register-device',
-        NOTIFICATION_PREFERENCES: '/notifications/preferences',
+        EMERGENCY_CONTACTS: '/api/v1/emergency-contacts',
 
         // Settings endpoints
-        SETTINGS: '/settings',
-        UPDATE_THRESHOLDS: '/settings/thresholds',
+        SETTINGS: '/api/v1/settings',
     },
 };
 

@@ -1,8 +1,9 @@
 import api from './api';
 import { EmergencyContact, EmergencyAlert } from '../types';
+import { API_CONFIG } from '../config/api.config';
 import { mockEmergencyContacts } from '../mocks/healthData';
 
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 let mockContacts = [...mockEmergencyContacts];
 
@@ -14,8 +15,21 @@ export const emergencyService = {
             return [...mockContacts];
         }
 
-        const response = await api.get('/emergency/contacts');
-        return response.data;
+        try {
+            const response = await api.get(API_CONFIG.ENDPOINTS.EMERGENCY_CONTACTS);
+            // Transform backend format to app format
+            return response.data.map((contact: any) => ({
+                id: contact.id.toString(),
+                name: contact.name,
+                phone: contact.phone,
+                relationship: contact.relationship || 'Other',
+                isPrimary: contact.is_primary || false,
+                priority: contact.is_primary ? 1 : 2,
+            }));
+        } catch (error) {
+            console.warn('Failed to fetch emergency contacts:', error);
+            throw error;
+        }
     },
 
     // Add emergency contact
@@ -30,8 +44,25 @@ export const emergencyService = {
             return newContact;
         }
 
-        const response = await api.post('/emergency/contacts', contact);
-        return response.data;
+        // Transform to backend format
+        const payload = {
+            name: contact.name,
+            phone: contact.phone,
+            relationship: contact.relationship,
+            is_primary: contact.isPrimary || false,
+        };
+
+        const response = await api.post(API_CONFIG.ENDPOINTS.EMERGENCY_CONTACTS, payload);
+        const data = response.data;
+        
+        return {
+            id: data.id.toString(),
+            name: data.name,
+            phone: data.phone,
+            relationship: data.relationship || 'Other',
+            isPrimary: data.is_primary || false,
+            priority: data.is_primary ? 1 : 2,
+        };
     },
 
     // Update emergency contact
@@ -44,8 +75,25 @@ export const emergencyService = {
             return mockContacts[index];
         }
 
-        const response = await api.put(`/emergency/contacts/${id}`, updates);
-        return response.data;
+        // Transform to backend format
+        const payload = {
+            name: updates.name,
+            phone: updates.phone,
+            relationship: updates.relationship,
+            is_primary: updates.isPrimary,
+        };
+
+        const response = await api.put(`${API_CONFIG.ENDPOINTS.EMERGENCY_CONTACTS}/${id}`, payload);
+        const data = response.data;
+        
+        return {
+            id: data.id.toString(),
+            name: data.name,
+            phone: data.phone,
+            relationship: data.relationship || 'Other',
+            isPrimary: data.is_primary || false,
+            priority: data.is_primary ? 1 : 2,
+        };
     },
 
     // Delete emergency contact
@@ -56,43 +104,29 @@ export const emergencyService = {
             return;
         }
 
-        await api.delete(`/emergency/contacts/${id}`);
+        await api.delete(`${API_CONFIG.ENDPOINTS.EMERGENCY_CONTACTS}/${id}`);
     },
 
     // Trigger SOS
     triggerSOS: async (): Promise<EmergencyAlert> => {
-        if (USE_MOCK) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            return {
-                id: Date.now().toString(),
-                type: 'Manual',
-                timestamp: new Date().toISOString(),
-                status: 'Pending',
-                triggeredBy: 'User',
-            };
-        }
-
-        const response = await api.post('/emergency/sos');
-        return response.data;
+        // SOS is handled locally - call primary contact
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return {
+            id: Date.now().toString(),
+            type: 'Manual',
+            timestamp: new Date().toISOString(),
+            status: 'Pending',
+            triggeredBy: 'User',
+        };
     },
 
     // Confirm emergency
     confirmEmergency: async (alertId: string): Promise<void> => {
-        if (USE_MOCK) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            return;
-        }
-
-        await api.post(`/emergency/${alertId}/confirm`);
+        await new Promise(resolve => setTimeout(resolve, 300));
     },
 
     // Cancel emergency
     cancelEmergency: async (alertId: string): Promise<void> => {
-        if (USE_MOCK) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            return;
-        }
-
-        await api.post(`/emergency/${alertId}/cancel`);
+        await new Promise(resolve => setTimeout(resolve, 300));
     },
 };

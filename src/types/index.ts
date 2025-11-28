@@ -28,6 +28,71 @@ export interface AuthResponse {
   refreshToken: string;
 }
 
+// Backend API Response Types
+export interface BackendAuthResponse {
+  access_token: string;
+  token_type: string;
+  user: {
+    id: number;
+    email: string;
+    full_name: string;
+    phone?: string;
+  };
+}
+
+export interface BackendHealthReading {
+  time: string;
+  device_id: string;
+  heart_rate: number;
+  spo2: number;
+  prediction: string;
+  is_anomaly: boolean;
+  forecasted_prediction: string;
+  stress_index: number;
+  cluster_label: string;
+  accel_mag: number;
+}
+
+export interface BackendHealthSummary {
+  state_distribution_percent: Record<string, number>;
+  anomaly_count: number;
+  average_resting_hr: number;
+  activity_distribution_percent: Record<string, number>;
+}
+
+export interface BackendAlert {
+  id: number;
+  type: string;
+  title: string;
+  body: string;
+  data?: {
+    heart_rate?: number;
+    spo2?: number;
+  };
+  sent_at: string;
+  read_at: string | null;
+  is_read: boolean;
+}
+
+export interface BackendEmergencyContact {
+  id: number;
+  name: string;
+  phone: string;
+  relationship: string;
+  is_primary: boolean;
+}
+
+export interface BackendSettings {
+  low_spo2_threshold: number;
+  high_hr_threshold: number;
+  low_hr_threshold: number;
+  enable_predictive_alerts: boolean;
+  enable_anomaly_alerts: boolean;
+  enable_emergency_alerts: boolean;
+  enable_sound: boolean;
+  enable_vibration: boolean;
+}
+
 // Health Data Types
 export type HealthState = 
   | 'Normal' 
@@ -36,7 +101,10 @@ export type HealthState =
   | 'Bradycardia' 
   | 'Hypoxia' 
   | 'Warning' 
-  | 'Critical';
+  | 'Critical'
+  | 'Resting'
+  | 'Exercising'
+  | 'Arrhythmia';
 
 export type ActivityLevel = 
   | 'Resting' 

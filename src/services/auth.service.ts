@@ -2,9 +2,10 @@ import api from './api';
 import { LoginCredentials, RegisterData, AuthResponse, User } from '../types';
 import { storage } from '../utils/storage';
 import { mockUser } from '../mocks/healthData';
+import { API_CONFIG } from '../config/api.config';
 
-// Mock mode - using mock data instead of real API
-const USE_MOCK = true;
+// Mock mode - set to false to use real API
+const USE_MOCK = false;
 
 export const authService = {
     // Login
@@ -34,15 +35,29 @@ export const authService = {
             throw new Error('Invalid credentials');
         }
 
-        const response = await api.post('/auth/login', credentials);
-        const data: AuthResponse = response.data;
+        // Real API call
+        const response = await api.post(API_CONFIG.ENDPOINTS.LOGIN, credentials);
+        const data = response.data;
+
+        // Transform backend response to app format
+        const authResponse: AuthResponse = {
+            user: {
+                id: data.user.id.toString(),
+                email: data.user.email,
+                name: data.user.full_name || data.user.email.split('@')[0],
+                phone: data.user.phone,
+                createdAt: new Date().toISOString(),
+            },
+            token: data.access_token,
+            refreshToken: data.access_token, // Backend uses same token
+        };
 
         // Save tokens
-        await storage.saveAuthToken(data.token);
-        await storage.saveRefreshToken(data.refreshToken);
-        await storage.saveUserData(data.user);
+        await storage.saveAuthToken(authResponse.token);
+        await storage.saveRefreshToken(authResponse.refreshToken);
+        await storage.saveUserData(authResponse.user);
 
-        return data;
+        return authResponse;
     },
 
     // Register
@@ -75,30 +90,42 @@ export const authService = {
             return response;
         }
 
-        const response = await api.post('/auth/register', userData);
-        const data: AuthResponse = response.data;
+        // Real API call - transform to backend format
+        const registerPayload = {
+            email: userData.email,
+            password: userData.password,
+            full_name: userData.name,
+            phone: userData.phone || '',
+        };
 
-        await storage.saveAuthToken(data.token);
-        await storage.saveRefreshToken(data.refreshToken);
-        await storage.saveUserData(data.user);
+        const response = await api.post(API_CONFIG.ENDPOINTS.REGISTER, registerPayload);
+        const data = response.data;
 
-        return data;
+        // Transform backend response to app format
+        const authResponse: AuthResponse = {
+            user: {
+                id: data.user.id.toString(),
+                email: data.user.email,
+                name: data.user.full_name || userData.name,
+                phone: userData.phone,
+                age: userData.age,
+                createdAt: new Date().toISOString(),
+            },
+            token: data.access_token,
+            refreshToken: data.access_token,
+        };
+
+        await storage.saveAuthToken(authResponse.token);
+        await storage.saveRefreshToken(authResponse.refreshToken);
+        await storage.saveUserData(authResponse.user);
+
+        return authResponse;
     },
 
     // Logout
     logout: async (): Promise<void> => {
-        if (USE_MOCK) {
-            await storage.clearAuthTokens();
-            await storage.remove('@pulsai_user_data');
-            return;
-        }
-
-        try {
-            await api.post('/auth/logout');
-        } finally {
-            await storage.clearAuthTokens();
-            await storage.remove('@pulsai_user_data');
-        }
+        await storage.clearAuthTokens();
+        await storage.remove('@pulsai_user_data');
     },
 
     // Get current user profile
@@ -108,8 +135,23 @@ export const authService = {
             return user || mockUser;
         }
 
-        const response = await api.get('/user/profile');
-        return response.data;
+        try {
+            const response = await api.get(API_CONFIG.ENDPOINTS.ME);
+            const data = response.data;
+            
+            return {
+                id: data.id.toString(),
+                email: data.email,
+                name: data.full_name || data.email.split('@')[0],
+                phone: data.phone,
+                createdAt: new Date().toISOString(),
+            };
+        } catch (error) {
+            // Fallback to stored user data
+            const user = await storage.getUserData();
+            if (user) return user;
+            throw error;
+        }
     },
 
     // Update user profile
@@ -122,8 +164,10 @@ export const authService = {
             return updatedUser;
         }
 
-        const response = await api.put('/user/profile', updates);
-        const updatedUser = response.data;
+        // Backend doesn't have update profile endpoint yet
+        // Store locally for now
+        const currentUser = await storage.getUserData();
+        const updatedUser = { ...currentUser, ...updates };
         await storage.saveUserData(updatedUser);
         return updatedUser;
     },
