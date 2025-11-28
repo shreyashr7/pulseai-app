@@ -1,0 +1,209 @@
+import React, { useState } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    TouchableOpacity,
+} from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Input } from '../../components/common/Input';
+import { Button } from '../../components/common/Button';
+import { COLORS, SPACING, TEXT_STYLES } from '../../theme';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { register, clearError } from '../../store/slices/authSlice';
+import { validateRegisterForm } from '../../utils/validators';
+
+type Props = NativeStackScreenProps<any, 'Register'>;
+
+export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
+    const dispatch = useAppDispatch();
+    const { loading, error } = useAppSelector((state) => state.auth);
+
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        age: '',
+        phone: '',
+    });
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const handleRegister = async () => {
+        setErrors({});
+        dispatch(clearError());
+
+        const validation = validateRegisterForm({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            confirmPassword: formData.confirmPassword,
+            age: formData.age ? parseInt(formData.age) : undefined,
+        });
+
+        if (!validation.valid) {
+            setErrors(validation.errors);
+            return;
+        }
+
+        const result = await dispatch(
+            register({
+                name: formData.name,
+                email: formData.email,
+                password: formData.password,
+                age: formData.age ? parseInt(formData.age) : undefined,
+                phone: formData.phone || undefined,
+            })
+        );
+
+        if (register.fulfilled.match(result)) {
+            // Navigation handled by app navigator
+        }
+    };
+
+    return (
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+            >
+                <View style={styles.header}>
+                    <Text style={styles.title}>Create Account</Text>
+                    <Text style={styles.subtitle}>Join PulsAI Health Monitoring</Text>
+                </View>
+
+                <View style={styles.form}>
+                    <Input
+                        label="Full Name"
+                        value={formData.name}
+                        onChangeText={(text) => setFormData({ ...formData, name: text })}
+                        placeholder="Enter your name"
+                        error={errors.name}
+                    />
+
+                    <Input
+                        label="Email"
+                        value={formData.email}
+                        onChangeText={(text) => setFormData({ ...formData, email: text })}
+                        placeholder="Enter your email"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        error={errors.email}
+                    />
+
+                    <Input
+                        label="Password"
+                        value={formData.password}
+                        onChangeText={(text) => setFormData({ ...formData, password: text })}
+                        placeholder="Create a password"
+                        secureTextEntry
+                        error={errors.password}
+                    />
+
+                    <Input
+                        label="Confirm Password"
+                        value={formData.confirmPassword}
+                        onChangeText={(text) =>
+                            setFormData({ ...formData, confirmPassword: text })
+                        }
+                        placeholder="Confirm your password"
+                        secureTextEntry
+                        error={errors.confirmPassword}
+                    />
+
+                    <Input
+                        label="Age (Optional)"
+                        value={formData.age}
+                        onChangeText={(text) => setFormData({ ...formData, age: text })}
+                        placeholder="Enter your age"
+                        keyboardType="numeric"
+                        error={errors.age}
+                    />
+
+                    <Input
+                        label="Phone (Optional)"
+                        value={formData.phone}
+                        onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                        placeholder="Enter your phone"
+                        keyboardType="phone-pad"
+                    />
+
+                    {error && <Text style={styles.errorText}>{error}</Text>}
+
+                    <Button
+                        title="Sign Up"
+                        onPress={handleRegister}
+                        loading={loading}
+                        style={styles.button}
+                    />
+
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('Login')}
+                        style={styles.linkContainer}
+                    >
+                        <Text style={styles.linkText}>
+                            Already have an account?{' '}
+                            <Text style={styles.linkTextBold}>Sign In</Text>
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </KeyboardAvoidingView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: COLORS.light.background,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        padding: SPACING.xl,
+        paddingTop: SPACING['2xl'],
+    },
+    header: {
+        alignItems: 'center',
+        marginBottom: SPACING.xl,
+    },
+    title: {
+        ...TEXT_STYLES.h2,
+        color: COLORS.primary,
+        fontWeight: 'bold',
+        marginBottom: SPACING.xs,
+    },
+    subtitle: {
+        ...TEXT_STYLES.body,
+        color: COLORS.light.textSecondary,
+    },
+    form: {
+        width: '100%',
+    },
+    button: {
+        marginTop: SPACING.md,
+    },
+    linkContainer: {
+        marginTop: SPACING.lg,
+        alignItems: 'center',
+    },
+    linkText: {
+        ...TEXT_STYLES.body,
+        color: COLORS.light.textSecondary,
+    },
+    linkTextBold: {
+        color: COLORS.primary,
+        fontWeight: '600',
+    },
+    errorText: {
+        ...TEXT_STYLES.body,
+        color: COLORS.light.error,
+        textAlign: 'center',
+        marginTop: SPACING.sm,
+    },
+});

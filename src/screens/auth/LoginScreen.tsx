@@ -1,0 +1,154 @@
+import React, { useState } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    TouchableOpacity,
+} from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Input } from '../../components/common/Input';
+import { Button } from '../../components/common/Button';
+import { SPACING, TEXT_STYLES } from '../../theme';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { login, clearError } from '../../store/slices/authSlice';
+import { validateLoginForm } from '../../utils/validators';
+
+type Props = NativeStackScreenProps<any, 'Login'>;
+
+export const LoginScreen: React.FC<Props> = ({ navigation }) => {
+    const dispatch = useAppDispatch();
+    const { loading, error } = useAppSelector((state) => state.auth);
+
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const handleLogin = async () => {
+        // Clear previous errors
+        setErrors({});
+        dispatch(clearError());
+
+        // Validate form
+        const validation = validateLoginForm(email, password);
+        if (!validation.valid) {
+            setErrors(validation.errors);
+            return;
+        }
+
+        // Attempt login
+        const result = await dispatch(login({ email, password }));
+        if (login.fulfilled.match(result)) {
+            // Navigation will be handled by the navigation component
+        }
+    };
+
+    return (
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+            >
+                <View style={styles.header}>
+                    <Text style={styles.title}>PulsAI</Text>
+                    <Text style={styles.subtitle}>Health Monitoring</Text>
+                </View>
+
+                <View style={styles.form}>
+                    <Input
+                        label="Email"
+                        value={email}
+                        onChangeText={setEmail}
+                        placeholder="Enter your email"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        error={errors.email}
+                    />
+
+                    <Input
+                        label="Password"
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder="Enter your password"
+                        secureTextEntry
+                        error={errors.password}
+                    />
+
+                    {error && <Text style={styles.errorText}>{error}</Text>}
+
+                    <Button
+                        title="Sign In"
+                        onPress={handleLogin}
+                        loading={loading}
+                        style={styles.button}
+                    />
+
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('Register')}
+                        style={styles.linkContainer}
+                    >
+                        <Text style={styles.linkText}>
+                            Don't have an account?{' '}
+                            <Text style={styles.linkTextBold}>Sign Up</Text>
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </KeyboardAvoidingView>
+    );
+};
+
+const getStyles = (colors: any) => StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: colors.background,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        padding: SPACING.xl,
+    },
+    header: {
+        alignItems: 'center',
+        marginBottom: SPACING['3xl'],
+    },
+    title: {
+        ...TEXT_STYLES.h1,
+        color: colors.primary,
+        fontWeight: 'bold',
+        marginBottom: SPACING.xs,
+    },
+    subtitle: {
+        ...TEXT_STYLES.h4,
+        color: colors.textSecondary,
+    },
+    form: {
+        width: '100%',
+    },
+    button: {
+        marginTop: SPACING.md,
+    },
+    linkContainer: {
+        marginTop: SPACING.lg,
+        alignItems: 'center',
+    },
+    linkText: {
+        ...TEXT_STYLES.body,
+        color: colors.textSecondary,
+    },
+    linkTextBold: {
+        color: colors.primary,
+        fontWeight: '600',
+    },
+    errorText: {
+        ...TEXT_STYLES.body,
+        color: colors.error,
+        textAlign: 'center',
+        marginTop: SPACING.sm,
+    },
+});
